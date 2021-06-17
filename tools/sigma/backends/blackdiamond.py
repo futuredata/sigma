@@ -17,13 +17,13 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     subExpression = "(%s)"
     listExpression = "(%s)"
     listSeparator = ", "
-    valueExpression = "%s"
+    valueExpression = "\'%s\'"
     mapListValueExpression = "%s IN %s"
     mapWildcard = "LIKE %s"
     mapSource = "%s %s"
     equalSource = "%s = %s"
     notEqualSource = "%s != %s"
-    typedValueExpression = "/match regex(\"%s\")/"
+    typedValueExpression = "MATCH REGEX(\"%s\")"
     nullExpression = "%s IS NULL"
     notNullExpression = "%s IS NOT NULL"
 
@@ -79,7 +79,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             if has_wildcard:
                 return self.mapSource % (transformed_fieldname , (self.mapWildcard % self.generateNode(value)))
             else:
-                return self.mapExpression % (transformed_fieldname, self.generateNode(value))
+                return self.equalSource % (transformed_fieldname, self.generateNode(value))
         elif isinstance(value, SigmaRegularExpressionModifier):
             return self.mapSource % (transformed_fieldname, self.typedValueExpression)
         elif "sourcetype" in transformed_fieldname:
@@ -90,7 +90,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             raise TypeError("Backend does not support map values of type " + str(type(value)))
 
     def generateMapItemListNode(self, key, value):
-        return "(" + (" OR ".join([self.mapWildcard % (key, self.generateValueNode(item)) for item in value])) + ")"
+        return "(" + (" OR ".join([self.mapSource % (key, self.mapWildcard % self.generateValueNode(item)) for item in value])) + ")"
 
     def generateValueNode(self, node):
         return self.valueExpression % (self.cleanValue(str(node)))
@@ -130,7 +130,11 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         if self._recursiveFtsSearch(parsed.parsedSearch):
             raise NotImplementedError("FullTextSearch not implemented for SQL Backend.")
         result = self.generateNode(parsed.parsedSearch)
-        return result
+        return self.formatQuery(result)
+
+    def formatQuery(self, query):
+        query = re.sub(r"NOT\s([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.+%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.+)\"\)))", r"\1 NOT \2", query)
+        return query
 
     def _recursiveFtsSearch(self, subexpression):
         #True: found subexpression, where no fieldname is requested -> full text search
