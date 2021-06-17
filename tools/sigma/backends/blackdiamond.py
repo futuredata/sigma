@@ -1,5 +1,6 @@
 import re
 import sigma
+from fnmatch import fnmatch
 from .base import SingleTextQueryBackend
 from sigma.parser.condition import NodeSubexpression, ConditionAND, ConditionOR, ConditionNOT
 from sigma.parser.modifiers.type import SigmaRegularExpressionModifier, SigmaTypeModifier
@@ -54,16 +55,38 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             return None
 
     def generateSubexpressionNode(self, node):
-        generated = self.generateNode(node.items)
-        if generated:
-            return self.subExpression % generated
-        else:
-            return None
+        return super().generateSubexpressionNode(node)
 
     def generateListNode(self, node):
         if not set([type(value) for value in node]).issubset({str, int}):
             raise TypeError("List values must be strings or numbers")
         return self.listExpression % (self.listSeparator.join([self.generateNode(value) for value in node]))
+
+    def makeCaseInSensitiveValue(self, value):
+        """
+        Returns dictionary of if should be a regex (`is_regex`) and if regex the query value ('value')
+        Converts the query(value) into a case insensitive regular expression (regex). ie: 'http' would get converted to '[hH][tT][pP][pP]'
+        Adds the beginning and ending '/' to make regex query if still determined that it should be a regex
+        """
+        if value and not value == 'null' and not re.match(r'^/.*/$', value) and (re.search('[a-zA-Z]', value) and not re.match(self.uuid_regex, value)):  # re.search for alpha is fastest:
+            # Escape additional values that are treated as specific "operators" within Elastic. (ie: @, ?, &, <, >, and ~)
+            # reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/regexp-syntax.html#regexp-optional-operators
+            value = re.sub( r"(((?<!\\)(\\\\)+)|(?<!\\))([@?&~<>])", "\g<1>\\\\\g<4>", value )
+            # Validate regex
+            try:
+                re.compile(value)
+                return {'is_regex': True, 'value': value}
+            # Regex failed
+            except re.error:
+                raise TypeError( "Regular expression validation error for: '%s')" %str(value) )
+        else:
+            return { 'is_regex': False, 'value': value }
+
+    def generateTypedValueNode(self, node):
+        try:
+            return self.typedValueExpression % (str(node))
+        except KeyError:
+            raise NotImplementedError("Type modifier '{}' is not supported by backend".format(node.identifier))
 
     def generateMapItemNode(self, node):
         fieldname, value = node
@@ -71,8 +94,10 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
         has_wildcard = re.search(r"((\\(\*|\?|\\))|\*|\?|_|%)", self.generateNode(value))
 
-        if "," in self.generateNode(value) and not has_wildcard:
-            return self.mapMulti % (transformed_fieldname, self.generateNode(value))
+        if isinstance(value, SigmaRegularExpressionModifier):
+            return self.mapSource % (transformed_fieldname, self.generateNode(value))
+        elif "," in self.generateNode(value) and not has_wildcard:
+            return self.mapListValueExpression % (transformed_fieldname, self.generateNode(value))
         elif type(value) == list:
             return self.generateMapItemListNode(transformed_fieldname, value)
         elif self.mapListsSpecialHandling == False and type(value) in (str, int, list) or self.mapListsSpecialHandling == True and type(value) in (str, int):
@@ -80,8 +105,6 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                 return self.mapSource % (transformed_fieldname , (self.mapWildcard % self.generateNode(value)))
             else:
                 return self.equalSource % (transformed_fieldname, self.generateNode(value))
-        elif isinstance(value, SigmaRegularExpressionModifier):
-            return self.mapSource % (transformed_fieldname, self.typedValueExpression)
         elif "sourcetype" in transformed_fieldname:
             return self.equalSource % (transformed_fieldname, self.generateNode(value))
         elif has_wildcard:
@@ -107,7 +130,18 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         in addition to the field mapping defined in the conversion configuration. The field name passed to this method was already
         transformed from the original name given in the Sigma rule.
         """
-        return fieldname
+    
+        if isinstance(value, SigmaRegularExpressionModifier):
+            self.matchKeyword = True
+        else:
+            self.matchKeyword = False
+
+        self.keyword_field = ''
+
+        if self.matchKeyword:
+            return '%s%s'%(fieldname, '')
+        else:
+            return fieldname
 
     def cleanValue(self, val):
         if not isinstance(val, str):
@@ -131,6 +165,13 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             raise NotImplementedError("FullTextSearch not implemented for SQL Backend.")
         result = self.generateNode(parsed.parsedSearch)
         return self.formatQuery(result)
+
+    def generateNode(self, node):
+        #Save fields for adding them in query_key
+        #if type(node) == sigma.parser.NodeSubexpression:
+        #    for k,v in node.items.items:
+        #        self.fields.append(k)
+        return super().generateNode(node)
 
     def formatQuery(self, query):
         query = re.sub(r"NOT\s([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.+%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.+)\"\)))", r"\1 NOT \2", query)
