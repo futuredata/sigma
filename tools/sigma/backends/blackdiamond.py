@@ -92,12 +92,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         fieldname, value = node
         transformed_fieldname = self.fieldNameMapping(fieldname, value)
 
-        has_wildcard = re.search(r"((\\(\*|\?|\\))|\*|\?|_|%)", self.generateNode(value))
+        has_wildcard = False
+        if value is not None:
+            has_wildcard = re.search(r"((\\(\*|\?|\\))|\*|\?|_|%)", self.generateNode(value))
 
         if isinstance(value, SigmaRegularExpressionModifier):
             return self.mapSource % (transformed_fieldname, self.generateNode(value))
-        elif "," in self.generateNode(value) and not has_wildcard:
-            return self.mapListValueExpression % (transformed_fieldname, self.generateNode(value))
         elif type(value) == list:
             return self.generateMapItemListNode(transformed_fieldname, value)
         elif self.mapListsSpecialHandling == False and type(value) in (str, int, list) or self.mapListsSpecialHandling == True and type(value) in (str, int):
@@ -109,6 +109,8 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             return self.equalSource % (transformed_fieldname, self.generateNode(value))
         elif has_wildcard:
             return self.mapWildcard % self.generateNode(value)
+        elif value is None:
+            return self.nullExpression % transformed_fieldname
         else:
             raise TypeError("Backend does not support map values of type " + str(type(value)))
 
@@ -174,7 +176,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         return super().generateNode(node)
 
     def formatQuery(self, query):
-        query = re.sub(r"NOT\s([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.+%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.+)\"\)))", r"\1 NOT \2", query)
+        #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
+        query = re.sub(r"NOT\s(?:\()?([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\()?", r"(\1 NOT \2)", query)
+        #Replace NOT key = value => key != value
+        query = re.sub(r"NOT\s(?:\()?([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))?", r"(\1 != \2)", query)
+        #Replace NOT key IS NULL => key IS NOT NULL
+        query = re.sub(r"NOT\s(?:\()?([A-Za-z-_]+)\s(?:IS NULL)(?:\))?", r"(\1 IS NOT NULL)", query)
         return query
 
     def _recursiveFtsSearch(self, subexpression):
