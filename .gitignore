@@ -98,3 +98,6 @@ settings.json
 
 # sigma2attack
 heatmap.json
+
+# py venv
+.venv/
