@@ -6,3 +6,4 @@ rules/windows/powershell/powershell_suspicious_invocation_generic.yml
 rules/windows/builtin/win_vul_cve_2020_0688.yml
 rules/windows/builtin/win_susp_lsass_dump_generic.yml
 rules/windows/process_creation/win_malware_notpetya.yml
+rules/windows/registry_event/sysmon_apt_leviathan.yml

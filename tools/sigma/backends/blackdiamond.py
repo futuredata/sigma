@@ -50,7 +50,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     def generateNOTNode(self, node):
         generated = self.generateNode(node.item)
         if generated is not None:
-            return self.notToken + generated
+            return self.formatQuery(self.notToken + generated)
         else:
             return None
 
@@ -166,7 +166,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         if self._recursiveFtsSearch(parsed.parsedSearch):
             raise NotImplementedError("FullTextSearch not implemented for SQL Backend.")
         result = self.generateNode(parsed.parsedSearch)
-        return self.formatQuery(result)
+        return result
 
     def generateNode(self, node):
         #Save fields for adding them in query_key
@@ -177,18 +177,18 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
     def formatQuery(self, query):
         #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
-        query = re.sub(r"NOT\s(?:\()?([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\()?", r"(\1 NOT \2)", query)
+        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\))", r"(\1 NOT \2)", query)
         #Replace NOT key = value => key != value
-        query = re.sub(r"NOT\s(?:\()?([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))?", r"(\1 != \2)", query)
+        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
         #Replace NOT key IS NULL => key IS NOT NULL
-        query = re.sub(r"NOT\s(?:\()?([A-Za-z-_]+)\s(?:IS NULL)(?:\))?", r"(\1 IS NOT NULL)", query)
+        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
         return query
 
     def _recursiveFtsSearch(self, subexpression):
         #True: found subexpression, where no fieldname is requested -> full text search
         #False: no subexpression found, where a full text search is needed
 
-        def _evaluateCondition(condition):
+        def _evaluateCondition(condition): 
             #Helper function to evaluate conditions
             if type(condition) not in  [ConditionAND, ConditionOR, ConditionNOT]:
                 raise NotImplementedError("Error in recursive Search logic")
