@@ -1,4 +1,5 @@
 import re
+from typing import Pattern
 import sigma
 from fnmatch import fnmatch
 from .base import SingleTextQueryBackend
@@ -50,6 +51,9 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     def generateNOTNode(self, node):
         generated = self.generateNode(node.item)
         if generated is not None:
+            pattern = r"\(\(([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\))|(?:IS NULL)|(?:\=\s(\'(?:\S+)\')))\)\)"
+            if(re.search(pattern , generated)):
+                generated = re.sub(pattern, r"(\1 \2)", generated)
             return self.formatQuery(self.notToken + generated)
         else:
             return None
@@ -94,7 +98,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
         has_wildcard = False
         if value is not None:
-            has_wildcard = re.search(r"((\\(\*|\?|\\))|\*|\?|_|%)", self.generateNode(value))
+            has_wildcard = re.search(r"((\\(\*|\?))|\*|\?|%)", self.generateNode(value))
 
         if isinstance(value, SigmaRegularExpressionModifier):
             return self.mapSource % (transformed_fieldname, self.generateNode(value))
