@@ -184,17 +184,13 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         return super().generateNode(node)
 
     def formatQuery(self, query):
-<<<<<<< HEAD
-        query = re.sub(r"NOT\s([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.+%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.+)\"\)))", r"\1 NOT \2", query)
-        query = 'WHERE ' + query
-=======
         #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\))", r"(\1 NOT \2)", query)
         #Replace NOT key = value => key != value
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
         #Replace NOT key IS NULL => key IS NOT NULL
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
->>>>>>> b8ad1a671a48ef9041d21301f96e1188faea7669
+        query = 'WHERE ' + query
         return query
 
     def _recursiveFtsSearch(self, subexpression):
