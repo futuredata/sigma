@@ -5,7 +5,7 @@ from sigma.parser.condition import NodeSubexpression, ConditionAND, ConditionOR,
 from sigma.parser.modifiers.type import SigmaRegularExpressionModifier, SigmaTypeModifier
 
 class BlackDiamondBackend(SingleTextQueryBackend):
-    """Converts Sigma rule into Splunk Search Processing Language (SPL)."""
+    """Converts Sigma rule into Black Diamond Correlation Rule"""
     identifier = "bdiamond"
     active = True
 
