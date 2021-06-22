@@ -34,6 +34,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     def generateANDNode(self, node):
         generated = [ self.generateNode(val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
+        print("visit ANDnode")
         if filtered:
             return self.andToken.join(filtered)
         else:
@@ -42,6 +43,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     def generateORNode(self, node):
         generated = [ self.generateNode(val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
+        print("visit ORnode")
         if filtered:
             return self.orToken.join(filtered)
         else:
@@ -58,6 +60,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         return super().generateSubexpressionNode(node)
 
     def generateListNode(self, node):
+        print("visit ListNode")
         if not set([type(value) for value in node]).issubset({str, int}):
             raise TypeError("List values must be strings or numbers")
         return self.listExpression % (self.listSeparator.join([self.generateNode(value) for value in node]))
@@ -71,7 +74,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         if value and not value == 'null' and not re.match(r'^/.*/$', value) and (re.search('[a-zA-Z]', value) and not re.match(self.uuid_regex, value)):  # re.search for alpha is fastest:
             # Escape additional values that are treated as specific "operators" within Elastic. (ie: @, ?, &, <, >, and ~)
             # reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/regexp-syntax.html#regexp-optional-operators
-            value = re.sub( r"(((?<!\\)(\\\\)+)|(?<!\\))([@?&~<>])", "\g<1>\\\\\g<4>", value )
+            value = re.sub(r"(((?<!\\)(\\\\)+)|(?<!\\))([@?&~<>])", "\g<1>\\\\\g<4>", value)
             # Validate regex
             try:
                 re.compile(value)
@@ -89,6 +92,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             raise NotImplementedError("Type modifier '{}' is not supported by backend".format(node.identifier))
 
     def generateMapItemNode(self, node):
+        print("visit MapItemNode")
         fieldname, value = node
         transformed_fieldname = self.fieldNameMapping(fieldname, value)
 
@@ -175,6 +179,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
     def formatQuery(self, query):
         query = re.sub(r"NOT\s([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.+%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.+)\"\)))", r"\1 NOT \2", query)
+        query = 'WHERE ' + query
         return query
 
     def _recursiveFtsSearch(self, subexpression):

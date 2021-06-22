@@ -16,7 +16,7 @@
 
 import re
 from .exceptions import SigmaParseError
-from .condition import SigmaConditionTokenizer, SigmaConditionParser, ConditionAND, ConditionOR, ConditionNULLValue
+from .condition import SigmaConditionTokenizer, SigmaConditionParser, ConditionAND, ConditionOR, ConditionNULLValue, dumpNode
 from .modifiers import apply_modifiers
 
 class SigmaParser:
@@ -52,6 +52,11 @@ class SigmaParser:
         for tokens in self.condtoken:
             condparsed = SigmaConditionParser(self, tokens)
             self.condparsed.append(condparsed)
+
+        print("Dump rule's parsed tree:")
+        for parserd in self.condparsed:
+            dumpNode(parserd.parsedSearch)
+        print()
 
     def parse_definition_byname(self, definitionName, condOverride=None):
         try:

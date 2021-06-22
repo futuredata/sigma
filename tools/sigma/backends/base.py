@@ -277,6 +277,7 @@ class SingleTextQueryBackend(RulenameCommentMixin, BaseBackend, QuoteCharMixin):
 
     def generateSubexpressionNode(self, node):
         generated = self.generateNode(node.items)
+        print("visit SubexpressionNode")
         if generated:
             return self.subExpression % generated
         else:
