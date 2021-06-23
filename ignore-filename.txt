@@ -1,7 +1,1 @@
 rules/windows/builtin/win_susp_failed_logons_single_source.yml
-rules/windows/powershell/powershell_nishang_malicious_commandlets.yml
-rules/windows/powershell/powershell_ntfs_ads_access.yml
-rules/windows/powershell/powershell_psattack.yml
-rules/windows/powershell/powershell_suspicious_invocation_generic.yml
-rules/windows/builtin/win_vul_cve_2020_0688.yml
-rules/windows/process_creation/win_malware_notpetya.yml

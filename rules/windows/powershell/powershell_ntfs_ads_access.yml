@@ -24,7 +24,7 @@ detection:
         - "add-content"
     keyword2:
         - "-stream"
-    condition: keyword1 and keyword2
+    condition: keyword1 and not keyword2
 falsepositives:
     - unknown
 level: high

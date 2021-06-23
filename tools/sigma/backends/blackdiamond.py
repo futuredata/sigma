@@ -1,5 +1,5 @@
 import re
-from typing import Pattern
+from typing import ItemsView, Pattern
 import sigma
 from fnmatch import fnmatch
 from .base import SingleTextQueryBackend
@@ -33,7 +33,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         super().__init__(sigmaconfig)
 
     def generateANDNode(self, node):
-        generated = [ self.generateNode(val) for val in node ]
+        generated = []
+        for val in node:
+            if(type(val)==str):
+                val=('keyword', '*' + val + "*")
+            generated.append(self.generateNode(val))
+        #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
         print("visit ANDnode")
         if filtered:
@@ -42,7 +47,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             return None
 
     def generateORNode(self, node):
-        generated = [ self.generateNode(val) for val in node ]
+        generated = []
+        for val in node:
+            if(type(val)==str):
+                val=('keyword', '*' + val + "*")
+            generated.append(self.generateNode(val))
+        #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
         print("visit ORnode")
         if filtered:
@@ -54,9 +64,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         generated = self.generateNode(node.item)
         if generated is not None:
             pattern = r"\(\(([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\))|(?:IS NULL)|(?:\=\s(\'(?:\S+)\')))\)\)"
+            patternAString = r"\(\((\'[^\']+\'|\"[^\"]+\")\)\)"
             if(re.search(pattern , generated)):
                 generated = re.sub(pattern, r"(\1 \2)", generated)
-            return self.formatQuery(self.notToken + generated)
+            elif(re.search(patternAString, generated)):
+                generated = re.sub(patternAString, r"(\1)", generated)
+            return self.addWhereClause(self.notToken + generated)
         else:
             return None
 
@@ -167,14 +180,17 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         val = re.sub(r'%', r'\%', val)
 
         #Replace * with %, if even number of backslashes (or zero) in front of *
-        val = re.sub(r"(?<!\\)(\\\\)*(?!\\)\*", r"\1%", val)
+        val = re.sub(r"(?<!\\)(\\\\)*(?!\\)(?<!\*)\*", r"\1%", val)
         return val
 
+    def formatMissingFieldname(self, value):
+        #value = re.sub(r"((?:OR|AND)\s|^)(?:WHERE\s)?(NOT\s)?(?:(?:\()?(?:\'([^\']+)\')(?:\))?)(?=[\s|\)|$])", r"\1 keyword \2LIKE '%\3%'", value)
+        value = self.formatQuery(value)
+        return value
+
     def generateQuery(self, parsed):
-        if self._recursiveFtsSearch(parsed.parsedSearch):
-            raise NotImplementedError("FullTextSearch not implemented for SQL Backend.")
         result = self.generateNode(parsed.parsedSearch)
-        return result
+        return self.formatMissingFieldname(result)
 
     def generateNode(self, node):
         #Save fields for adding them in query_key
@@ -183,6 +199,10 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         #        self.fields.append(k)
         return super().generateNode(node)
 
+    def addWhereClause(self, query):
+        query = 'WHERE ' + query
+        return query
+
     def formatQuery(self, query):
         #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\))", r"(\1 NOT \2)", query)
@@ -190,7 +210,6 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
         #Replace NOT key IS NULL => key IS NOT NULL
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
-        query = 'WHERE ' + query
         return query
 
     def _recursiveFtsSearch(self, subexpression):
