@@ -3,7 +3,8 @@ from typing import ItemsView, Pattern
 import sigma
 from fnmatch import fnmatch
 from .base import SingleTextQueryBackend
-from sigma.parser.condition import NodeSubexpression, ConditionAND, ConditionOR, ConditionNOT
+from sigma.parser.exceptions import SigmaParseError
+from sigma.parser.condition import SigmaAggregationParser, NodeSubexpression, ConditionAND, ConditionOR, ConditionNOT
 from sigma.parser.modifiers.type import SigmaRegularExpressionModifier, SigmaTypeModifier
 
 class BlackDiamondBackend(SingleTextQueryBackend):
@@ -28,6 +29,11 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     typedValueExpression = "MATCH REGEX(\"%s\")"
     nullExpression = "%s IS NULL"
     notNullExpression = "%s IS NOT NULL"
+    fulltextSearchField = "einfo"
+    whenClause = '1 event'
+    havingClauseFields = ['tenantname', 'obsname', 'obsip']
+    sevMapping = {'informational': '24h', 'low': '18h', 'medium': '12h', 'high': '6h', 'critical': '3h'}
+    additionalWhereClause = 'tenantname NOT IN "tenantnameProvisioning"'
 
     def __init__(self, sigmaconfig, options):
         super().__init__(sigmaconfig)
@@ -36,7 +42,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         generated = []
         for val in node:
             if(type(val)==str):
-                val=('keyword', '*' + val + "*")
+                val=(self.fulltextSearchField, '*' + val + "*")
             generated.append(self.generateNode(val))
         #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
@@ -50,7 +56,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         generated = []
         for val in node:
             if(type(val)==str):
-                val=('keyword', '*' + val + "*")
+                val=(self.fulltextSearchField, '*' + val + "*")
             generated.append(self.generateNode(val))
         #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
@@ -69,7 +75,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                 generated = re.sub(pattern, r"(\1 \2)", generated)
             elif(re.search(patternAString, generated)):
                 generated = re.sub(patternAString, r"(\1)", generated)
-            return self.addWhereClause(self.notToken + generated)
+            return self.formatQuery(self.notToken + generated)
         else:
             return None
 
@@ -183,14 +189,62 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         val = re.sub(r"(?<!\\)(\\\\)*(?!\\)(?<!\*)\*", r"\1%", val)
         return val
 
-    def formatMissingFieldname(self, value):
-        #value = re.sub(r"((?:OR|AND)\s|^)(?:WHERE\s)?(NOT\s)?(?:(?:\()?(?:\'([^\']+)\')(?:\))?)(?=[\s|\)|$])", r"\1 keyword \2LIKE '%\3%'", value)
-        value = self.formatQuery(value)
-        return value
+    def generate(self, sigmaparser):
+        """Method is called for each sigma rule and receives the parsed rule (SigmaParser)"""
+        for parsed in sigmaparser.condparsed:
+            query = self.generateQuery(parsed, sigmaparser)
+            before = self.generateBefore(parsed)
+            after = self.generateAfter(parsed)
 
-    def generateQuery(self, parsed):
-        result = self.generateNode(parsed.parsedSearch)
-        return self.formatMissingFieldname(result)
+            result = ""
+            if before is not None:
+                result = before
+            if query is not None:
+                result += query
+            if after is not None:
+                result += after
+
+            return result
+
+    def generateQuery(self, parsed, sigmaparser):
+        result = self.addToEndOfQuery(self.formatQuery(self.generateNode(parsed.parsedSearch)))
+        try:
+            timeframe = sigmaparser.parsedyaml['detection']['timeframe']
+        except:
+            timeframe = None
+        try:
+            sev = sigmaparser.parsedyaml['level']
+        except:
+            sev = None
+        #Handle aggregation
+        when, whe, having = self.generateAggregation(parsed.parsedAgg, result, self.havingClauseFields)
+        ruleParsed = "WHEN {} WHERE {}"
+        if(timeframe != None) :
+            ruleParsed += (" WITHIN {}".format(timeframe))
+        ruleParsed += " HAVING SAME {} "
+        if(sev != None):
+            ruleParsed += ("SUPPRESS {}".format(self.sevMapping[sev]))
+        return ruleParsed.format(when, whe, ','.join(having))
+
+    def generateAggregation(self, agg, where_clausel, having):
+        if not agg:
+            return self.whenClause, where_clausel, having
+
+        if  (agg.aggfunc == SigmaAggregationParser.AGGFUNC_COUNT):
+
+            if agg.groupfield:
+                having.append(agg.groupfield)
+            if (agg.cond_op == '>' or agg.cond_op == '>='):
+                when = ""
+                if(agg.cond_op == '>='):
+                    when += (agg.condition + " event")
+                else:
+                    when += (str(int(agg.condition) + 1) + ' events')
+                return when, where_clausel, having
+        else:
+            return self.whenClause, where_clausel, having
+        raise NotImplementedError("{} aggregation not implemented in BD Backend".format(agg.aggfunc_notrans))
+
 
     def generateNode(self, node):
         #Save fields for adding them in query_key
@@ -199,10 +253,6 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         #        self.fields.append(k)
         return super().generateNode(node)
 
-    def addWhereClause(self, query):
-        query = 'WHERE ' + query
-        return query
-
     def formatQuery(self, query):
         #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\))", r"(\1 NOT \2)", query)
@@ -210,6 +260,11 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
         #Replace NOT key IS NULL => key IS NOT NULL
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
+        return query
+
+    def addToEndOfQuery(self, query):
+         #add tenant condition to the end of where clause
+        query = re.sub(r"\)$", " AND " + self.additionalWhereClause + ")", query)
         return query
 
     def _recursiveFtsSearch(self, subexpression):
