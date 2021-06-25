@@ -3,6 +3,7 @@ from typing import ItemsView, Pattern
 import sigma
 from fnmatch import fnmatch
 from .base import SingleTextQueryBackend
+from sigma.config.mapping import ConditionalFieldMapping
 from sigma.parser.exceptions import SigmaParseError
 from sigma.parser.condition import SigmaAggregationParser, NodeSubexpression, ConditionAND, ConditionOR, ConditionNOT
 from sigma.parser.modifiers.type import SigmaRegularExpressionModifier, SigmaTypeModifier
@@ -160,17 +161,19 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         transformed from the original name given in the Sigma rule.
         """
     
-        if isinstance(value, SigmaRegularExpressionModifier):
-            self.matchKeyword = True
-        else:
-            self.matchKeyword = False
-
-        self.keyword_field = ''
-
-        if self.matchKeyword:
-            return '%s%s'%(fieldname, '')
-        else:
-            return fieldname
+        if isinstance(fieldname, str):
+            get_config = self.sigmaconfig.fieldmappings.get(fieldname)
+            if not get_config and '|' in fieldname:
+                fieldname = fieldname.split('|', 1)[0]
+                get_config = self.sigmaconfig.fieldmappings.get(fieldname)
+            if isinstance(get_config, ConditionalFieldMapping):
+                condition = self.sigmaconfig.fieldmappings.get(fieldname).conditions
+                for key, item in self.logsource.items():
+                    if condition.get(key) and condition.get(key, {}).get(item):
+                        new_fieldname = condition.get(key, {}).get(item)
+                        if any(new_fieldname):
+                           return super().fieldNameMapping(new_fieldname[0], value)
+        return super().fieldNameMapping(fieldname, value)
 
     def cleanValue(self, val):
         if not isinstance(val, str):
@@ -241,6 +244,8 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                 else:
                     when += (str(int(agg.condition) + 1) + ' events')
                 return when, where_clausel, having
+            else: 
+                return self.whenClause, where_clausel, having
         else:
             return self.whenClause, where_clausel, having
         raise NotImplementedError("{} aggregation not implemented in BD Backend".format(agg.aggfunc_notrans))

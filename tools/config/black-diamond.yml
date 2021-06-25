@@ -2,8 +2,15 @@ title: Black Diamond field mapping
 order: 20
 backends:
   - bdiamond
-fieldmappings:
-  Message: 
-    product=windows:
-    service=powershell:
-      - trgattval
+logsources:
+  windows:
+    product: windows
+    conditions:
+      taxevtst: 1
+  windows-powershell:
+    product: windows
+    service: powershell
+    conditions:
+      trgdtname: MATCH REGEX ("(?i)(powershell|cmd)(.exe)")
+      vec: 4104
+logsourcemerging: or
