@@ -229,9 +229,9 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             ruleParsed += ("SUPPRESS {}".format(self.sevMapping[sev]))
         return ruleParsed.format(when, whe, ','.join(having))
 
-    def generateAggregation(self, agg, where_clausel, having):
+    def generateAggregation(self, agg, where_clause, having):
         if not agg:
-            return self.whenClause, where_clausel, having
+            return self.whenClause, where_clause, having
 
         if  (agg.aggfunc == SigmaAggregationParser.AGGFUNC_COUNT):
 
@@ -243,11 +243,11 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                     when += (agg.condition + " event")
                 else:
                     when += (str(int(agg.condition) + 1) + ' events')
-                return when, where_clausel, having
+                return when, where_clause, having
             else: 
-                return self.whenClause, where_clausel, having
+                return self.whenClause, where_clause, having
         else:
-            return self.whenClause, where_clausel, having
+            return self.whenClause, where_clause, having
         raise NotImplementedError("{} aggregation not implemented in BD Backend".format(agg.aggfunc_notrans))
 
 
