@@ -3,10 +3,6 @@ order: 20
 backends:
   - bdiamond
 logsources:
-  windows:
-    product: windows
-    conditions:
-      taxevtst: 1
   windows-powershell:
     product: windows
     service: powershell

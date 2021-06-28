@@ -30,14 +30,17 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     typedValueExpression = "MATCH REGEX(\"%s\")"
     nullExpression = "%s IS NULL"
     notNullExpression = "%s IS NOT NULL"
-    fulltextSearchField = "einfo"
     whenClause = '1 event'
-    havingClauseFields = ['tenantname', 'obsname', 'obsip']
-    sevMapping = {'informational': '24h', 'low': '18h', 'medium': '12h', 'high': '6h', 'critical': '3h'}
-    additionalWhereClause = 'tenantname NOT IN "tenantnameProvisioning"'
 
     def __init__(self, sigmaconfig, options):
         super().__init__(sigmaconfig)
+        if options['general']:
+            self.fulltextSearchField = options['general']['fulltextSearchField']
+            self.sevMapping = options['general']['sevMapping']
+            self.havingClauseFields = options['general']['havingClauseFields']
+            self.additionalWhereClause = options['general']['additionalWhereClause']
+        if options['others']:
+            self.additionalWithCondition = options['others']
 
     def generateANDNode(self, node):
         generated = []
@@ -210,7 +213,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             return result
 
     def generateQuery(self, parsed, sigmaparser):
-        result = self.addToEndOfQuery(self.formatQuery(self.generateNode(parsed.parsedSearch)))
+        result = self.addToEndOfQuery(self.formatQuery(self.generateNode(parsed.parsedSearch)), sigmaparser.parsedyaml['logsource'])
         try:
             timeframe = sigmaparser.parsedyaml['detection']['timeframe']
         except:
@@ -221,12 +224,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             sev = None
         #Handle aggregation
         when, whe, having = self.generateAggregation(parsed.parsedAgg, result, self.havingClauseFields)
-        ruleParsed = "WHEN {} WHERE {}"
+        ruleParsed = "WHEN {}\n\tWHERE {}"
         if(timeframe != None) :
-            ruleParsed += (" WITHIN {}".format(timeframe))
-        ruleParsed += " HAVING SAME {} "
+            ruleParsed += ("\n\tWITHIN {}".format(timeframe))
+        ruleParsed += "\n\tHAVING SAME {} "
         if(sev != None):
-            ruleParsed += ("SUPPRESS {}".format(self.sevMapping[sev]))
+            ruleParsed += ("\n\tSUPPRESS {}".format(self.sevMapping[sev]))
         return ruleParsed.format(when, whe, ','.join(having))
 
     def generateAggregation(self, agg, where_clause, having):
@@ -240,7 +243,10 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             if (agg.cond_op == '>' or agg.cond_op == '>='):
                 when = ""
                 if(agg.cond_op == '>='):
-                    when += (agg.condition + " event")
+                    if(int(agg.condition == 1)):
+                        when += (agg.condition + " event")
+                    else:
+                        when += (agg.condition + " events")
                 else:
                     when += (str(int(agg.condition) + 1) + ' events')
                 return when, where_clause, having
@@ -267,9 +273,21 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
         return query
 
-    def addToEndOfQuery(self, query):
+    def addToEndOfQuery(self, query, logsource):
          #add tenant condition to the end of where clause
-        query = re.sub(r"\)$", " AND " + self.additionalWhereClause + ")", query)
+        product = service = ""
+        if(logsource['product']):
+            productName = list(self.additionalWithCondition['product'].keys())
+            if(logsource['product'] in productName):
+                product = " AND " + self.additionalWithCondition['product'][logsource['product']]
+        if(logsource['product']):
+            serviceName = list(self.additionalWithCondition['service'].keys())
+            if(logsource['service'] in serviceName): 
+                service = " AND " + self.additionalWithCondition['service'][logsource['service']]
+        if(re.search(r"\)$", query)):
+            query = re.sub(r"\)$", " AND " + self.additionalWhereClause + product + service + ")", query)
+        else:
+            query += (" AND " + self.additionalWhereClause + product + service)
         return query
 
     def _recursiveFtsSearch(self, subexpression):
