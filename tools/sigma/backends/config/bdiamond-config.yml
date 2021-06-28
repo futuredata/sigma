@@ -1,0 +1,19 @@
+general:
+  additionalWhereClause: tenantname NOT IN "tenantnameProvisioning"
+  fulltextSearchField: einfo
+  sevMapping: 
+    informational: 24h
+    low: 18h
+    medium: 12h
+    high: 6h
+    critical: 3h
+  havingClauseFields:
+    - tenantname
+    - obsname
+    - obsip
+others:
+  product:
+      windows: taxevtst=1
+      linux: sh
+  service:
+    powershell: ( trgdtname match regex ("(?i)(powershell|cmd)(.exe)?") or vec=4104)
