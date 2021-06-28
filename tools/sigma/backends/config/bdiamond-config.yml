@@ -14,6 +14,5 @@ general:
 others:
   product:
       windows: taxevtst=1
-      linux: sh
   service:
     powershell: ( trgdtname match regex ("(?i)(powershell|cmd)(.exe)?") or vec=4104)
