@@ -238,29 +238,30 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
     def generateBefore(self, sigmaparser):
         parseContent = []
-        if(sigmaparser.parsedyaml['id']):
+        if('id' in sigmaparser.parsedyaml):
             parseContent.append(sigmaparser.parsedyaml['id']) 
         parseContent.append("0")
         parseContent.append("")
-        if(sigmaparser.parsedyaml['title']):
+        if('title' in sigmaparser.parsedyaml):
             parseContent.append(sigmaparser.parsedyaml['title'])
-        if(sigmaparser.parsedyaml['description']):
+        if('description' in sigmaparser.parsedyaml):
             parseContent.append(sigmaparser.parsedyaml['description'])
-        if(sigmaparser.parsedyaml['falsepositives']):
+        if('falsepositives' in sigmaparser.parsedyaml):
             parseContent.append("\n".join(sigmaparser.parsedyaml['falsepositives']))
         parseContent.append("")
         parseContent.append("")
-        if(sigmaparser.parsedyaml['level']):
+        if('level' in sigmaparser.parsedyaml):
             parseContent.append(str(self.sevMappingAsNum[sigmaparser.parsedyaml['level']]))
         return ','.join(parseContent)
 
     def generateAfter(self, sigmaparser):
         parseContent = []
-        if(sigmaparser.parsedyaml['status']):
+        if("status" in sigmaparser.parsedyaml):
             if(sigmaparser.parsedyaml['status'] == "experimental"):
                 parseContent.append("true")
             else:
                 parseContent.append("false")
+        else: parseContent.append("false")
         parseContent.append("0")
         parseContent.append("0")
         parseContent.append("0")
