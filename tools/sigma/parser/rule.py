@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+from sigma.tools import doIfDebug
 from .exceptions import SigmaParseError
 from .condition import SigmaConditionTokenizer, SigmaConditionParser, ConditionAND, ConditionOR, ConditionNULLValue, dumpNode
 from .modifiers import apply_modifiers
@@ -53,10 +54,12 @@ class SigmaParser:
             condparsed = SigmaConditionParser(self, tokens)
             self.condparsed.append(condparsed)
 
-        print("Dump rule's parsed tree:")
-        for parserd in self.condparsed:
-            dumpNode(parserd.parsedSearch)
-        print()
+        def showParsedTree():
+            print("Dump rule's parsed tree:")
+            for parserd in self.condparsed:
+                dumpNode(parserd.parsedSearch)
+            print()
+        doIfDebug(showParsedTree)
 
     def parse_definition_byname(self, definitionName, condOverride=None):
         try:

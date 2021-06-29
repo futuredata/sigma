@@ -16,6 +16,7 @@
 
 import pkgutil
 import importlib
+import os
 
 def getAllSubclasses(path, import_base, base_class):
     """Return list of all classes derived from a superclass contained in a module."""
@@ -30,3 +31,7 @@ def getAllSubclasses(path, import_base, base_class):
 def getClassDict(clss):
     """Return a dictionary: class.identifier -> class"""
     return {cls.identifier: cls for cls in clss }
+
+def doIfDebug(f):
+    if os.getenv('DEBUG'):
+        f()

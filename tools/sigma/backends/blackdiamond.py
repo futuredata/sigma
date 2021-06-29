@@ -1,4 +1,5 @@
 import re
+from sigma.tools import doIfDebug
 from typing import ItemsView, Pattern
 import sigma
 from fnmatch import fnmatch
@@ -51,7 +52,9 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             generated.append(self.generateNode(val))
         #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
-        print("visit ANDnode")
+
+        doIfDebug(lambda : print("visit ANDnode"))
+
         if filtered:
             return self.andToken.join(filtered)
         else:
@@ -65,7 +68,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             generated.append(self.generateNode(val))
         #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
         filtered = [ g for g in generated if g is not None ]
-        print("visit ORnode")
+        doIfDebug(lambda : print("visit ANDnode"))
         if filtered:
             return self.orToken.join(filtered)
         else:
@@ -88,7 +91,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         return super().generateSubexpressionNode(node)
 
     def generateListNode(self, node):
-        print("visit ListNode")
+        doIfDebug(lambda: print("visit ListNode"))
         if not set([type(value) for value in node]).issubset({str, int}):
             raise TypeError("List values must be strings or numbers")
         return self.listExpression % (self.listSeparator.join([self.generateNode(value) for value in node]))
@@ -120,7 +123,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             raise NotImplementedError("Type modifier '{}' is not supported by backend".format(node.identifier))
 
     def generateMapItemNode(self, node):
-        print("visit MapItemNode")
+        doIfDebug(lambda: print("visit MapItemNode") )
         fieldname, value = node
         transformed_fieldname = self.fieldNameMapping(fieldname, value)
 
@@ -240,7 +243,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         parseContent.append("0")
         parseContent.append("")
         if(sigmaparser.parsedyaml['title']):
-            parseContent.append(sigmaparser.parsedyaml['id'])
+            parseContent.append(sigmaparser.parsedyaml['title'])
         if(sigmaparser.parsedyaml['description']):
             parseContent.append(sigmaparser.parsedyaml['description'])
         if(sigmaparser.parsedyaml['falsepositives']):
@@ -321,11 +324,11 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     def addToEndOfQuery(self, query, logsource):
          #add tenant condition to the end of where clause
         product = service = ""
-        if(logsource['product']):
+        if 'product' in logsource:
             productName = list(self.additionalWithCondition['product'].keys())
             if(logsource['product'] in productName):
                 product = " AND " + self.additionalWithCondition['product'][logsource['product']]
-        if(logsource['product']):
+        if 'service' in logsource:
             serviceName = list(self.additionalWithCondition['service'].keys())
             if(logsource['service'] in serviceName): 
                 service = " AND " + self.additionalWithCondition['service'][logsource['service']]
