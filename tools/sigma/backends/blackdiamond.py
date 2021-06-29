@@ -39,6 +39,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             self.sevMapping = options['general']['sevMapping']
             self.havingClauseFields = options['general']['havingClauseFields']
             self.additionalWhereClause = options['general']['additionalWhereClause']
+            self.sevMappingAsNum = options['general']['sevMappingAsNum']
         if options['others']:
             self.additionalWithCondition = options['others']
 
@@ -199,18 +200,18 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         """Method is called for each sigma rule and receives the parsed rule (SigmaParser)"""
         for parsed in sigmaparser.condparsed:
             query = self.generateQuery(parsed, sigmaparser)
-            before = self.generateBefore(parsed)
-            after = self.generateAfter(parsed)
+            before = self.generateBefore(sigmaparser)
+            after = self.generateAfter(sigmaparser)
 
-            result = ""
+            result = []
             if before is not None:
-                result = before
+                result.append(before)
             if query is not None:
-                result += query
+                result.append(query)
             if after is not None:
-                result += after
+                result.append(after)
 
-            return result
+            return ','.join(result)
 
     def generateQuery(self, parsed, sigmaparser):
         result = self.addToEndOfQuery(self.formatQuery(self.generateNode(parsed.parsedSearch)), sigmaparser.parsedyaml['logsource'])
@@ -231,6 +232,50 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         if(sev != None):
             ruleParsed += ("\n\tSUPPRESS {}".format(self.sevMapping[sev]))
         return ruleParsed.format(when, whe, ','.join(having))
+
+    def generateBefore(self, sigmaparser):
+        parseContent = []
+        if(sigmaparser.parsedyaml['id']):
+            parseContent.append(sigmaparser.parsedyaml['id']) 
+        parseContent.append("0")
+        parseContent.append("")
+        if(sigmaparser.parsedyaml['title']):
+            parseContent.append(sigmaparser.parsedyaml['id'])
+        if(sigmaparser.parsedyaml['description']):
+            parseContent.append(sigmaparser.parsedyaml['description'])
+        if(sigmaparser.parsedyaml['falsepositives']):
+            parseContent.append("\n".join(sigmaparser.parsedyaml['falsepositives']))
+        parseContent.append("")
+        parseContent.append("")
+        if(sigmaparser.parsedyaml['level']):
+            parseContent.append(str(self.sevMappingAsNum[sigmaparser.parsedyaml['level']]))
+        return ','.join(parseContent)
+
+    def generateAfter(self, sigmaparser):
+        parseContent = []
+        if(sigmaparser.parsedyaml['status']):
+            if(sigmaparser.parsedyaml['status'] == "experimental"):
+                parseContent.append("true")
+            else:
+                parseContent.append("false")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("A")
+        parseContent.append("N")
+        parseContent.append("0")
+        parseContent.append("N")
+        parseContent.append("-")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("0")
+        parseContent.append("N")
+        parseContent.append("[]")
+        return ','.join(parseContent)
 
     def generateAggregation(self, agg, where_clause, having):
         if not agg:

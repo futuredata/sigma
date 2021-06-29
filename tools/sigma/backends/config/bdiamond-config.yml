@@ -7,6 +7,13 @@ general:
     medium: 12h
     high: 6h
     critical: 3h
+  sevMappingAsNum: 
+    unclassified: 0
+    informational: 1
+    low: 2
+    medium: 3
+    high: 4
+    critical: 5
   havingClauseFields:
     - tenantname
     - obsname
@@ -15,4 +22,4 @@ others:
   product:
       windows: taxevtst=1
   service:
-    powershell: ( trgdtname match regex ("(?i)(powershell|cmd)(.exe)?") or vec=4104)
+    powershell: ( trgdtname MATCH REGEX ("(?i)(powershell|cmd)(.exe)?") OR vec=4104)
