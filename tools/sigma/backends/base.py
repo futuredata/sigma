@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+from sigma.tools import doIfDebug
 
 import sigma
 import yaml
@@ -277,7 +278,7 @@ class SingleTextQueryBackend(RulenameCommentMixin, BaseBackend, QuoteCharMixin):
 
     def generateSubexpressionNode(self, node):
         generated = self.generateNode(node.items)
-        print("visit SubexpressionNode")
+        doIfDebug(lambda: print("visit SubexpressionNode") )
         if generated:
             return self.subExpression % generated
         else:
