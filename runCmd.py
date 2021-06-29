@@ -52,7 +52,7 @@ if __name__ == '__main__':
         if f in ignorelist:
             continue
         print("\n")
-        batcmd="python ./tools/sigmac -t " + parsetype + " " + f + " -c " + config + " -C " + backend_config
+        batcmd="python ./tools/sigmac -t " + parsetype + " -c " + config + " -C " + backend_config + " " + f
         print('======= ' + batcmd)
         result = subprocess.check_output(batcmd, shell=True, universal_newlines=False, encoding=False)
         print(result.decode("utf-8") , end = '', flush=True)
