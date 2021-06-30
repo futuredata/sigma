@@ -131,6 +131,8 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         has_wildcard = False
         if value is not None:
             has_wildcard = re.search(r"((\\(\*|\?))|\*|\?|%)", self.generateNode(value))
+            if(has_wildcard and len(value)==1):
+                has_wildcard = None
 
         if isinstance(value, SigmaRegularExpressionModifier):
             return self.mapSource % (transformed_fieldname, self.generateNode(value))
@@ -197,7 +199,8 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         val = re.sub(r'%', r'\%', val)
 
         #Replace * with %, if even number of backslashes (or zero) in front of *
-        val = re.sub(r"(?<!\\)(\\\\)*(?!\\)(?<!\*)\*", r"\1%", val)
+        if(len(val)>1 and re.search(r"(?<!\\)(\\\\)*(?!\\)(?<!\*)\*", val)):
+            val = re.sub(r"(?<!\\)(\\\\)*(?!\\)(?<!\*)\*", r"\1%", val)
         return val
 
     def generate(self, sigmaparser):
