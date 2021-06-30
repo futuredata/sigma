@@ -239,7 +239,10 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         ruleParsed += "\n\tHAVING SAME {} "
         if(sev != None):
             ruleParsed += ("\n\tSUPPRESS {}".format(self.sevMapping[sev]))
-        return re.sub(r"\"", "\"\"", ruleParsed.format(when, whe, ','.join(having)))
+        if(self.outputCSV):
+            return re.sub(r"\"", "\"\"", ruleParsed.format(when, whe, ','.join(having)))
+        else:
+            return ruleParsed.format(when, whe, ','.join(having))
 
     def formatStringInCSV(self, string):
         string = re.sub(r"\"", "\"\"", string)
