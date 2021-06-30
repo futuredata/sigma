@@ -6,16 +6,17 @@ import sys, getopt
 import os
 
 def default_arg_msg():
-    print('runCmd.py -t <type> -f <folder> -c <config> -C <backend_config>')
+    print('runCmd.py -t <type> -f <folder> -c <config> -C <backend_config> -n <output_filename>')
 
 if __name__ == '__main__':
     folder = ''
     parsetype = ''
     config = ''
     backend_config = ''
+    output_filename = ''
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"t:f:c:C:",["type=","folder=", "config=", "backend_config="])
+        opts, args = getopt.getopt(sys.argv[1:],"t:f:c:C:n:",["type=","folder=", "config=", "backend_config=", "output_filename="])
     except getopt.GetoptError:
         default_arg_msg()
         sys.exit(2)
@@ -29,14 +30,17 @@ if __name__ == '__main__':
                 config = arg
             elif opt in ("-C", "--backend_config"):
                 backend_config = arg
+            elif opt in ("-n", "--output_filename"):
+                output_filename = arg
     else:
         default_arg_msg()
         sys.exit()
     
-    print('Load folder is "', folder)
-    print('Parse type  is "', parsetype)  
-    print('Config  is "', config)
-    print('Config Backend  is "', backend_config)
+    print('Load folder is ', folder)
+    print('Parse type  is ', parsetype)  
+    print('Config  is ', config)
+    print('Config Backend  is ', backend_config)
+    print('Output filename  is ', output_filename)
     
     onlyfiles = [os.path.join(r,file) for r,d,f in os.walk(folder) for file in f]
     
@@ -48,12 +52,26 @@ if __name__ == '__main__':
             ignorelist.append(line.replace("\n", ""))
     print(ignorelist)  
     
-    for f in onlyfiles:
-        if f in ignorelist:
-            continue
-        print("\n")
-        batcmd="python ./tools/sigmac -t " + parsetype + " -c " + config + " -C " + backend_config + " " + f
-        print('======= ' + batcmd)
-        result = subprocess.check_output(batcmd, shell=True, universal_newlines=False, encoding=False)
-        print(result.decode("utf-8") , end = '', flush=True)
+    if(output_filename != ''):
+        file = open(output_filename, "a")
+        file.write("\"InfoId\",\"Tenant\",\"Type\",\"Name\",\"Description\",\"FalsePositiveCheck\",\"Analysis\",\"Recommendation\",\"Severity\",\"Rule\",\"IsExp\",\"EvtSt\",\"EvtObj\",\"EvtCon\",\"EvtAct\",\"OutObj\",\"OutCon\",\"OutPro\",\"Status\",\"EvtTime\",\"Suppression\",\"SMStatus\",\"ThresholdType\",\"BucketSize\",\"ThresholdFirstValue\",\"ThresholdSecondValue\",\"TmStatus\",\"DrillDownQuery\"\n");
+        for f in onlyfiles:
+            if f in ignorelist:
+                continue
+            print("\n")
+            batcmd="python ./tools/sigmac -t " + parsetype + " -c " + config + " -C " + backend_config + " " + f
+            print('======= ' + batcmd)
+            result = subprocess.check_output(batcmd, shell=True, universal_newlines=False, encoding=False)
+            file.write(result.decode("utf-8"));
+            print(result.decode("utf-8") , end = '', flush=True)
+        file.close()
+    else:
+        for f in onlyfiles:
+            if f in ignorelist:
+                continue
+            print("\n")
+            batcmd="python ./tools/sigmac -t " + parsetype + " -c " + config + " -C " + backend_config + " " + f
+            print('======= ' + batcmd)
+            result = subprocess.check_output(batcmd, shell=True, universal_newlines=False, encoding=False)
+            print(result.decode("utf-8") , end = '', flush=True)
 

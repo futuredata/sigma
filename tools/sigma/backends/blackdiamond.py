@@ -41,6 +41,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             self.havingClauseFields = options['general']['havingClauseFields']
             self.additionalWhereClause = options['general']['additionalWhereClause']
             self.sevMappingAsNum = options['general']['sevMappingAsNum']
+            self.outputCSV = options['outputCSV']
         if options['others']:
             self.additionalWithCondition = options['others']
 
@@ -207,12 +208,16 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             after = self.generateAfter(sigmaparser)
 
             result = []
-            if before is not None:
-                result.append(before)
-            if query is not None:
-                result.append(query)
-            if after is not None:
-                result.append(after)
+            if(self.outputCSV):
+                if before is not None:
+                    result.append(before)
+                if query is not None:
+                    result.append("\"" + query + "\"")
+                if after is not None:
+                    result.append(after)
+            else:
+                if query is not None:
+                    result.append(query)
 
             return ','.join(result)
 
@@ -234,51 +239,56 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         ruleParsed += "\n\tHAVING SAME {} "
         if(sev != None):
             ruleParsed += ("\n\tSUPPRESS {}".format(self.sevMapping[sev]))
-        return ruleParsed.format(when, whe, ','.join(having))
+        return re.sub(r"\"", "\"\"", ruleParsed.format(when, whe, ','.join(having)))
+
+    def formatStringInCSV(self, string):
+        string = re.sub(r"\"", "\"\"", string)
+        string = re.sub(r"\,", "\;", string)
+        return string
 
     def generateBefore(self, sigmaparser):
         parseContent = []
         if('id' in sigmaparser.parsedyaml):
-            parseContent.append(sigmaparser.parsedyaml['id']) 
-        parseContent.append("0")
-        parseContent.append("")
+            parseContent.append("\"" + sigmaparser.parsedyaml['id'] + "\"") 
+        parseContent.append("\"0\"")
+        parseContent.append("\"\"")
         if('title' in sigmaparser.parsedyaml):
-            parseContent.append(sigmaparser.parsedyaml['title'])
+            parseContent.append("\"" + self.formatStringInCSV(sigmaparser.parsedyaml['title']) + "\"")
         if('description' in sigmaparser.parsedyaml):
-            parseContent.append(sigmaparser.parsedyaml['description'])
+            parseContent.append("\"" + self.formatStringInCSV(sigmaparser.parsedyaml['description']) + "\"")
         if('falsepositives' in sigmaparser.parsedyaml):
-            parseContent.append("\n".join(sigmaparser.parsedyaml['falsepositives']))
-        parseContent.append("")
-        parseContent.append("")
+            parseContent.append("\"" + self.formatStringInCSV("\n".join(sigmaparser.parsedyaml['falsepositives'])) + "\"")
+        parseContent.append("\"\"")
+        parseContent.append("\"\"")
         if('level' in sigmaparser.parsedyaml):
-            parseContent.append(str(self.sevMappingAsNum[sigmaparser.parsedyaml['level']]))
+            parseContent.append("\"" + str(self.sevMappingAsNum[sigmaparser.parsedyaml['level']]) + "\"")
         return ','.join(parseContent)
 
     def generateAfter(self, sigmaparser):
         parseContent = []
         if("status" in sigmaparser.parsedyaml):
             if(sigmaparser.parsedyaml['status'] == "experimental"):
-                parseContent.append("true")
+                parseContent.append("\"true\"")
             else:
-                parseContent.append("false")
-        else: parseContent.append("false")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("A")
-        parseContent.append("N")
-        parseContent.append("0")
-        parseContent.append("N")
-        parseContent.append("-")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("0")
-        parseContent.append("N")
-        parseContent.append("[]")
+                parseContent.append("\"false\"")
+        else: parseContent.append("\"false\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"N\"")
+        parseContent.append("\"-\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"0\"")
+        parseContent.append("\"N\"")
+        parseContent.append("\"[]\"")
         return ','.join(parseContent)
 
     def generateAggregation(self, agg, where_clause, having):
@@ -317,7 +327,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\))", r"(\1 NOT \2)", query)
         #Replace NOT key = value => key != value
-        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:\=\s(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
+        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)(?:\=(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
         #Replace NOT key IS NULL => key IS NOT NULL
         query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
         return query

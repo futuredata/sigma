@@ -1,3 +1,4 @@
+outputCSV: false
 general:
   additionalWhereClause: tenantname NOT IN "tenantnameProvisioning"
   fulltextSearchField: einfo
