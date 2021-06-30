@@ -2,4 +2,9 @@ title: Black Diamond field mapping
 order: 20
 backends:
   - bdiamond
+fieldmappings:
+  Message: 
+    product=windows:
+    service=powershell:
+      - trgattval
 logsourcemerging: or

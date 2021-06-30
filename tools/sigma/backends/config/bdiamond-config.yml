@@ -22,5 +22,7 @@ general:
 others:
   product:
       windows: taxevtst=1
+      linux: taxevtst=1
   service:
     powershell: ( trgdtname MATCH REGEX ("(?i)(powershell|cmd)(.exe)?") OR vec=4104)
+    auditd: trgsvcname='audit'
