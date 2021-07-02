@@ -205,24 +205,30 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
     def generate(self, sigmaparser):
         """Method is called for each sigma rule and receives the parsed rule (SigmaParser)"""
-        for parsed in sigmaparser.condparsed:
-            query = self.generateQuery(parsed, sigmaparser)
-            before = self.generateBefore(sigmaparser)
-            after = self.generateAfter(sigmaparser)
+        if len(sigmaparser.condparsed) > 1:
+            query = ""
+            for idx, parsed in enumerate(sigmaparser.condparsed):
+                if(idx != 0):
+                    query += "\nUNION OR\n"
+                query += self.generateQuery(parsed, sigmaparser)
+        else:
+            query = self.generateQuery(sigmaparser.condparsed[0], sigmaparser)
+        before = self.generateBefore(sigmaparser)
+        after = self.generateAfter(sigmaparser)
 
-            result = []
-            if(self.outputCSV):
-                if before is not None:
-                    result.append(before)
-                if query is not None:
-                    result.append("\"" + query + "\"")
-                if after is not None:
-                    result.append(after)
-            else:
-                if query is not None:
-                    result.append(query)
+        result = []
+        if(self.outputCSV):
+            if before is not None:
+                result.append(before)
+            if query is not None:
+                result.append("\"" + query + "\"")
+            if after is not None:
+                result.append(after)
+        else:
+            if query is not None:
+                result.append(query)
 
-            return ','.join(result)
+        return ','.join(result)
 
     def generateQuery(self, parsed, sigmaparser):
         result = self.addToEndOfQuery(self.formatQuery(self.generateNode(parsed.parsedSearch)), sigmaparser.parsedyaml['logsource'])
