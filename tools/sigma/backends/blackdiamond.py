@@ -231,6 +231,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         return ','.join(result)
 
     def generateQuery(self, parsed, sigmaparser):
+        self.logsource = sigmaparser.parsedyaml['logsource']
         result = self.addToEndOfQuery(self.formatQuery(self.generateNode(parsed.parsedSearch)), sigmaparser.parsedyaml['logsource'])
         try:
             timeframe = sigmaparser.parsedyaml['detection']['timeframe']
