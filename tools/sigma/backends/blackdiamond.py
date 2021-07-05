@@ -131,8 +131,9 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         has_wildcard = False
         if value is not None:
             has_wildcard = re.search(r"((\\(\*|\?))|\*|\?|%)", self.generateNode(value))
-            if(has_wildcard and len(value)==1):
-                has_wildcard = None
+            if(has_wildcard and type(value) == str):
+                if(len(value)==1):
+                    has_wildcard = None
 
         if isinstance(value, SigmaRegularExpressionModifier):
             return self.mapSource % (transformed_fieldname, self.generateNode(value))
