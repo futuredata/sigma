@@ -19,6 +19,19 @@ general:
     - tenantname
     - obsname
     - obsip
+ignoredFields:
+  - DestinationIsIpv6
+  - Device
+  - Path
+  - EngineVersion
+  - HostVersion
+  - Initiated
+  - ObjectClass
+  - ParentIntegrityLevel
+  - Source
+  - Signed
+  - service
+  - sha1
 others:
   product:
       windows: taxevtst=1

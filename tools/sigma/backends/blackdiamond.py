@@ -44,6 +44,8 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             self.outputCSV = options['outputCSV']
         if options['others']:
             self.additionalWithCondition = options['others']
+        if options['ignoredFields']:
+            self.ignoredFields = options['ignoredFields']
 
     def generateANDNode(self, node):
         generated = []
@@ -52,7 +54,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                 val=(self.fulltextSearchField, '*' + val + "*")
             generated.append(self.generateNode(val))
         #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
-        filtered = [ g for g in generated if g is not None ]
+        filtered = [ g for g in generated if g is not None and g != "" ]
 
         doIfDebug(lambda : print("visit ANDnode"))
 
@@ -68,7 +70,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                 val=(self.fulltextSearchField, '*' + val + "*")
             generated.append(self.generateNode(val))
         #generated = [ self.generateNode(val=('keyword', val) if type(val)=="str" else val) for val in node ]
-        filtered = [ g for g in generated if g is not None ]
+        filtered = [ g for g in generated if g is not None and g != "" ]
         doIfDebug(lambda : print("visit ANDnode"))
         if filtered:
             return self.orToken.join(filtered)
@@ -84,7 +86,10 @@ class BlackDiamondBackend(SingleTextQueryBackend):
                 generated = re.sub(pattern, r"(\1 \2)", generated)
             elif(re.search(patternAString, generated)):
                 generated = re.sub(patternAString, r"(\1)", generated)
-            return self.formatQuery(self.notToken + generated)
+            if(generated != ""):
+                return self.formatQuery(self.notToken + generated)
+            else: 
+                return None
         else:
             return None
 
@@ -127,6 +132,9 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         doIfDebug(lambda: print("visit MapItemNode") )
         fieldname, value = node
         transformed_fieldname = self.fieldNameMapping(fieldname, value)
+
+        if transformed_fieldname in self.ignoredFields:
+            return ""
 
         has_wildcard = False
         if value is not None:

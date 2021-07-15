@@ -3,8 +3,102 @@ order: 20
 backends:
   - bdiamond
 fieldmappings:
-  Message: 
-    product=windows:
-    service=powershell:
-      - trgattval
+  WorkstationName:
+    - srcuname
+    - trguname
+  Workstation: 
+    - srcuname
+    - trguname
+  User: 
+    - srcuname
+    - trguname
+  UserName: 
+    - srcuname
+    - trguname
+  IpAddress: 
+    - srcip
+    - trgip
+  DestinationHostname: 
+    - trgname
+    - trgdtname
+  AccessMask: voc
+  AccountName: trguname
+  AuditSourceName: srcsvcname
+  AuthenticationPackage: einfo
+  CallTrace: trgdtname,
+  ChangedAttributes: einfo
+  CommandLine: trgattval
+  ComputerName: trguname
+  CurrentDirectory: trgdtcontainer
+  Description: trgattval
+  DestPort: trgport
+  DestinationAddress: trgip
+  DestinationIp: trgip
+  DestinationPort: trgport
+  DeviceClassName: trgclass
+  DeviceDescription: einfo
+  DeviceName: trgdtname
+  EventID: vec
+  FailureCode: voc
+  GrantedAccess: voc
+  GroupName: trgattname
+  Hashes: trgattval
+  HostApplication: trgattval
+  HostName: srcuname
+  ImagePath: trgdtcontainer
+  Initiated: einfo
+  KeyLength: einfo
+  Keywords: trgattval
+  LDAPDisplayName: trgsvcname
+  LayerRTID: trguid
+  Level: Severity
+  LogonId: einfo
+  LogonProcessName: trgsvcname
+  LogonType: einfo
+  MachineName: srcuname
+  Message: trgattval
+  NewName: trgdtcontainer
+  NewValue: einfo
+  ObjectName: trgdtname
+  ObjectServer: einfo
+  ObjectType: einfo
+  ObjectValueName: einfo
+  Origin: einfo
+  OriginalFileName: trgdtname
+  ParentOfParentImage: trgdtcontainer
+  PasswordLastSet: einfo
+  Payload: trgattval
+  PipeName: einfo
+  PrivilegeList: einfo
+  ProcessCommandLine: trgattval
+  trgattval: trgdomain
+  QueryName: trgdomain
+  QueryResults: trgip
+  QueryStatus: einfo
+  RelativeTargetName: trgdtname
+  SAMAccountName: trguname
+  ScriptBlockText: trgattval
+  Service: obssvccpn
+  ServiceFileName: trgattval
+  ServiceName: trgsvcname
+  ShareName: trgdtcontainer
+  SidHistory: einfo
+  Signature: trgattname
+  SourceAddress: srcip 
+  SourceImage: trgdtname
+  SourceNetworkAddress: srcip
+  SourcePort: srcport
+  SourceUserName: srcuname
+  SourceWorkstation: srcname
+  Status: voc
+  SubjectUserSid: srcid
+  TargetFileName: trgdtcontainer
+  TargetFilename: trgdtname
+  TargetLogonId: einfo
+  TargetUserName: trguname
+  Target_Server_Name: trgname
+  TaskName: enifo
+  TicketEncryptionType: voc
+  TicketOptions: einfo
+  keywords: trgattval
 logsourcemerging: or
