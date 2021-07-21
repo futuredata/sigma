@@ -32,6 +32,49 @@ ignoredFields:
   - Signed
   - service
   - sha1
+multiMappingFields:
+  Destination:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  Details:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  FileName:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  HiveName:
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  Image:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  ImageLoaded:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  ParentCommandLine:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  ParentImage:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  ProcessName:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  TargetImage:
+    trgdtnamespace: '(\w):\\'
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
+  TargetObject:
+    trgdtcontainer: '\*?(\\[^\s|\.]+)\\\*?'
+    trgdtname: '[^\\|\s]+\.\S+$'
 others:
   product:
       windows: taxevtst=1

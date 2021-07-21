@@ -46,6 +46,8 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             self.additionalWithCondition = options['others']
         if options['ignoredFields']:
             self.ignoredFields = options['ignoredFields']
+        if options['multiMappingFields']:
+            self.multiMappingFields = options['multiMappingFields']
 
     def generateANDNode(self, node):
         generated = []
@@ -136,6 +138,25 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         if transformed_fieldname in self.ignoredFields:
             return ""
 
+        if transformed_fieldname in self.multiMappingFields.keys():
+            if type(value) == str:
+                keys = self.multiMappingFields[transformed_fieldname].keys()
+                arr = []
+                for idx, key in enumerate(keys):
+                    value_search = re.search(self.multiMappingFields[transformed_fieldname][key], value)
+                    if(value_search):
+                        arr.append(self.generateMapPhrase(key, value_search.group(0)))
+                    elif(idx == (len(keys) - 1) and len(arr) == 0):
+                        return ""
+                if(len(arr) > 1):
+                    return "(" + self.andToken.join(arr) + ")"
+                elif len(arr) == 1:
+                    return arr[0] 
+
+        return self.generateMapPhrase(transformed_fieldname, value)
+                
+
+    def generateMapPhrase(self, transformed_fieldname, value):
         has_wildcard = False
         if value is not None:
             has_wildcard = re.search(r"((\\(\*|\?))|\*|\?|%)", self.generateNode(value))

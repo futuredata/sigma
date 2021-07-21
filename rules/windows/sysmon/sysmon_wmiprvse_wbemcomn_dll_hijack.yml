@@ -20,9 +20,9 @@ detection:
         Image: System
         TargetFilename|endswith: '\wbem\wbemcomn.dll'
     selection_two:
-        EventID: 7
-        Image|endswith: '\wmiprvse.exe'
-        ImageLoaded|endswith: '\wbem\wbemcomn.dll'
+        - EventID: 7
+        - Image|endswith: '\wmiprvse.exe'
+        - ImageLoaded|endswith: '\wbem\wbemcomn.dll'
     condition: selection_one or selection_two
 falsepositives:
     - Unknown
