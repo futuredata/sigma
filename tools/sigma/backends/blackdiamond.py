@@ -14,23 +14,23 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     identifier = "bdiamond"
     active = True
 
-    andToken = " AND "
-    orToken = " OR "
-    notToken = "NOT "
+    andToken = " and "
+    orToken = " or "
+    notToken = "not "
 
     reEscape = re.compile("([\s+\\-=!(){}\\[\\]^\"~:/]|(?<!\\\\)\\\\(?![*?\\\\])|\\\\u|&&|\\|\\|)")
     subExpression = "(%s)"
     listExpression = "(%s)"
     listSeparator = ", "
     valueExpression = "\'%s\'"
-    mapListValueExpression = "%s IN %s"
-    mapWildcard = "LIKE %s"
+    mapListValueExpression = "%s in %s"
+    mapWildcard = "like %s"
     mapSource = "%s %s"
     equalSource = "%s=%s"
     notEqualSource = "%s!=%s"
-    typedValueExpression = "MATCH REGEX(\"%s\")"
-    nullExpression = "%s IS NULL"
-    notNullExpression = "%s IS NOT NULL"
+    typedValueExpression = "match regex(\"%s\")"
+    nullExpression = "%s is null"
+    notNullExpression = "%s is not null"
     whenClause = '1 event'
 
     def __init__(self, sigmaconfig, options):
@@ -82,7 +82,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
     def generateNOTNode(self, node):
         generated = self.generateNode(node.item)
         if generated is not None:
-            pattern = r"\(\(([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\))|(?:IS NULL)|(?:\=\s(\'(?:\S+)\')))\)\)"
+            pattern = r"\(\(([A-Za-z-_]+)\s((?:like\s(?:\'\S%?.*%?\S\'))|(?:in\s\((?:.+(?:,)?){1,}\))|(?:match\sregex\(\"(?:.*)\"\))|(?:is null)|(?:\=\s(\'(?:\S+)\')))\)\)"
             patternAString = r"\(\((\'[^\']+\'|\"[^\"]+\")\)\)"
             if(re.search(pattern , generated)):
                 generated = re.sub(pattern, r"(\1 \2)", generated)
@@ -183,7 +183,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             raise TypeError("Backend does not support map values of type " + str(type(value)))
 
     def generateMapItemListNode(self, key, value):
-        return "(" + (" OR ".join([self.mapSource % (key, self.mapWildcard % self.generateValueNode(item)) for item in value])) + ")"
+        return "(" + (" or ".join([self.mapSource % (key, self.mapWildcard % self.generateValueNode(item)) for item in value])) + ")"
 
     def generateValueNode(self, node):
         return self.valueExpression % (self.cleanValue(str(node)))
@@ -239,7 +239,7 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             query = ""
             for idx, parsed in enumerate(sigmaparser.condparsed):
                 if(idx != 0):
-                    query += "\nUNION OR\n"
+                    query += "\nunion or\n"
                 query += self.generateQuery(parsed, sigmaparser)
         else:
             query = self.generateQuery(sigmaparser.condparsed[0], sigmaparser)
@@ -273,12 +273,12 @@ class BlackDiamondBackend(SingleTextQueryBackend):
             sev = None
         #Handle aggregation
         when, whe, having = self.generateAggregation(parsed.parsedAgg, result, self.havingClauseFields)
-        ruleParsed = "WHEN {}\n\tWHERE {}"
+        ruleParsed = "when {}\n\twhere {}"
         if(timeframe != None) :
-            ruleParsed += ("\n\tWITHIN {}".format(timeframe))
-        ruleParsed += "\n\tHAVING SAME {} "
+            ruleParsed += ("\n\twithin {}".format(timeframe))
+        ruleParsed += "\n\thaving same {} "
         if(sev != None):
-            ruleParsed += ("\n\tSUPPRESS {}".format(self.sevMapping[sev]))
+            ruleParsed += ("\n\tsuppress {}".format(self.sevMapping[sev]))
         if(self.outputCSV):
             return re.sub(r"\"", "\"\"", ruleParsed.format(when, whe, ','.join(having)))
         else:
@@ -368,11 +368,11 @@ class BlackDiamondBackend(SingleTextQueryBackend):
 
     def formatQuery(self, query):
         #Replace NOT key LIKE | NOT key IN | NOT key MATCH REGEX => key NOT LIKE|IN|MATCH REGEX
-        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s((?:LIKE\s(?:\'\S%?.*%?\S\'))|(?:IN\s\((?:.+(?:,)?){1,}\))|(?:MATCH\sREGEX\(\"(?:.*)\"\)))(?:\))", r"(\1 NOT \2)", query)
+        query = re.sub(r"not\s(?:\()([A-Za-z-_]+)\s((?:like\s(?:\'\S%?.*%?\S\'))|(?:in\s\((?:.+(?:,)?){1,}\))|(?:match\sregex\(\"(?:.*)\"\)))(?:\))", r"(\1 not \2)", query)
         #Replace NOT key = value => key != value
-        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)(?:\=(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
+        query = re.sub(r"not\s(?:\()([A-Za-z-_]+)(?:\=(\'(?:\S+)\'))(?:\))", r"(\1 != \2)", query)
         #Replace NOT key IS NULL => key IS NOT NULL
-        query = re.sub(r"NOT\s(?:\()([A-Za-z-_]+)\s(?:IS NULL)(?:\))", r"(\1 IS NOT NULL)", query)
+        query = re.sub(r"not\s(?:\()([A-Za-z-_]+)\s(?:is null)(?:\))", r"(\1 is not null)", query)
         return query
 
     def addToEndOfQuery(self, query, logsource):
@@ -381,15 +381,15 @@ class BlackDiamondBackend(SingleTextQueryBackend):
         if 'product' in logsource:
             productName = list(self.additionalWithCondition['product'].keys())
             if(logsource['product'] in productName):
-                product = " AND " + self.additionalWithCondition['product'][logsource['product']]
+                product = " and " + self.additionalWithCondition['product'][logsource['product']]
         if 'service' in logsource:
             serviceName = list(self.additionalWithCondition['service'].keys())
             if(logsource['service'] in serviceName): 
-                service = " AND " + self.additionalWithCondition['service'][logsource['service']]
+                service = " and " + self.additionalWithCondition['service'][logsource['service']]
         if(re.search(r"\)$", query)):
-            query = re.sub(r"\)$", " AND " + self.additionalWhereClause + product + service + ")", query)
+            query = re.sub(r"\)$", " and " + self.additionalWhereClause + product + service + ")", query)
         else:
-            query += (" AND " + self.additionalWhereClause + product + service)
+            query += (" and " + self.additionalWhereClause + product + service)
         return query
 
     def _recursiveFtsSearch(self, subexpression):

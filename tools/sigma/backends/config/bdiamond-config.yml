@@ -1,6 +1,6 @@
 outputCSV: false
 general:
-  additionalWhereClause: tenantname NOT IN "tenantnameProvisioning"
+  additionalWhereClause: tenantname not in "tenantnameProvisioning"
   fulltextSearchField: einfo
   sevMapping: 
     informational: 24h
@@ -80,5 +80,5 @@ others:
       windows: taxevtst=1
       linux: taxevtst=1
   service:
-    powershell: ( trgdtname MATCH REGEX ("(?i)(powershell|cmd)(.exe)?") OR vec=4104)
+    powershell: ( trgdtname match regex ("(?i)(powershell|cmd)(.exe)?") or vec=4104)
     auditd: trgsvcname='audit'
