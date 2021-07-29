@@ -54,7 +54,7 @@ if __name__ == '__main__':
     
     for line in open(loadfile,'r'):
         if line != "" :
-            ignorelist.append(line.replace("\n", ""))
+            ignorelist.append(os.path.normpath(line.replace("\n", "")))
     print(ignorelist)  
     
     if(output_filename != ''):
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         if(is_csv == '1'):
             file.write("\"InfoId\",\"Tenant\",\"Type\",\"Name\",\"Description\",\"FalsePositiveCheck\",\"Analysis\",\"Recommendation\",\"Severity\",\"Rule\",\"IsExp\",\"EvtSt\",\"EvtObj\",\"EvtCon\",\"EvtAct\",\"OutObj\",\"OutCon\",\"OutPro\",\"Status\",\"EvtTime\",\"Suppression\",\"SMStatus\",\"ThresholdType\",\"BucketSize\",\"ThresholdFirstValue\",\"ThresholdSecondValue\",\"TmStatus\",\"DrillDownQuery\"\n");
         for f in onlyfiles:
-            if f in ignorelist:
+            if os.path.normpath(f) in ignorelist:
                 continue
             print("\n")
             batcmd="python ./tools/sigmac -t " + parsetype + " -c " + config + " -C " + backend_config + " " + f
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         file.close()
     else:
         for f in onlyfiles:
-            if f in ignorelist:
+            if os.path.normpath(f) in ignorelist:
                 continue
             print("\n")
             batcmd="python ./tools/sigmac -t " + parsetype + " -c " + config + " -C " + backend_config + " " + f
